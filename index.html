@@ -701,19 +701,19 @@
 
   <script>
     // ─── CONFIG ────────────────────────────────────────────────────
-    const CORS_PROXY = 'https://corsproxy.io/?';
+    const RSS2JSON = 'https://api.rss2json.com/v1/api.json?rss_url=';
     const FEEDS = {
       world: [
         'https://feeds.bbci.co.uk/news/world/rss.xml',
-        'https://feeds.skynews.com/feeds/rss/world.xml',
+        'https://rss.nytimes.com/services/xml/rss/nyt/World.xml',
       ],
       india: [
-        'https://www.thehindu.com/news/national/feeder/default.rss',
-        'https://timesofindia.indiatimes.com/rssfeeds/296589292.cms',
+        'https://feeds.feedburner.com/ndtvnews-india-news',
+        'https://timesofindia.indiatimes.com/rssfeeds/-2128936835.cms',
       ],
       tn: [
-        'https://www.thehindu.com/news/national/tamil-nadu/feeder/default.rss',
-        'https://news.google.com/rss/search?q=Tamil+Nadu&hl=en-IN&gl=IN&ceid=IN:en',
+        'https://news.google.com/rss/search?q=Tamil+Nadu+news&hl=en-IN&gl=IN&ceid=IN:en',
+        'https://news.google.com/rss/search?q=TamilNadu+latest&hl=ta&gl=IN&ceid=IN:ta',
       ]
     };
     const REFRESH_INTERVAL = 15 * 60 * 1000; // 15 minutes
@@ -749,29 +749,19 @@
     // ─── FETCH SINGLE RSS FEED ──────────────────────────────────────
     async function fetchFeed(url) {
       try {
-        const r = await fetch(CORS_PROXY + encodeURIComponent(url));
-        const text = await r.text();
-        const parser = new DOMParser();
-        const xml = parser.parseFromString(text, 'text/xml');
-        const items = Array.from(xml.querySelectorAll('item')).slice(0, 8);
-        const feedTitle = xml.querySelector('channel > title')?.textContent || 'News';
-        return items.map(item => {
-          const desc = item.querySelector('description')?.textContent || '';
-          const content = item.querySelector('encoded')?.textContent || desc;
-          const mediaUrl = item.querySelector('content')?.getAttribute('url') ||
-                           item.querySelector('thumbnail')?.getAttribute('url') || '';
-          return {
-            title:   cleanText(item.querySelector('title')?.textContent || ''),
-            summary: cleanText(content),
-            image:   mediaUrl || extractImage(content) || extractImage(desc),
-            source:  feedTitle,
-            url:     item.querySelector('link')?.textContent?.trim() ||
-                     item.querySelector('guid')?.textContent || '#',
-            pubDate: item.querySelector('pubDate')?.textContent || '',
-            id:      item.querySelector('guid')?.textContent || item.querySelector('link')?.textContent,
-          };
-        }).filter(a => a.title && a.title !== '[Removed]');
-      } catch(e) { console.warn('Feed error:', url, e.message); return []; }
+        const r = await fetch(`${RSS2JSON}${encodeURIComponent(url)}`);
+        const d = await r.json();
+        if (d.status !== 'ok') return [];
+        return (d.items || []).map(item => ({
+          title:      cleanText(item.title || ''),
+          summary:    cleanText(item.description || item.content || ''),
+          image:      item.enclosure?.link || item.thumbnail || extractImage(item.description || ''),
+          source:     d.feed?.title || 'News',
+          url:        item.link || '#',
+          pubDate:    item.pubDate || '',
+          id:         item.guid || item.link || item.title,
+        })).filter(a => a.title && a.title !== '[Removed]');
+      } catch { return []; }
     }
 
     function cleanText(html) {

@@ -77,7 +77,7 @@ self.addEventListener('periodicsync', event => {
 async function checkForNewArticles() {
   for (const [category, feedUrl] of Object.entries(FEEDS)) {
     try {
-      const res  = await fetch(`${RSS2JSON}${encodeURIComponent(feedUrl)}&count=1`);
+      const res  = await fetch(`${RSS2JSON}${encodeURIComponent(feedUrl)}`);
       const data = await res.json();
       if (data.status !== 'ok' || !data.items?.length) continue;
 
