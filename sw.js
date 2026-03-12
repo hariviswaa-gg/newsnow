@@ -1,7 +1,7 @@
 // ─── NewsNow Service Worker ─────────────────────────────────────
 // Handles background sync, caching, and push notifications
 
-const CACHE_NAME = 'newsnow-v1';
+const CACHE_NAME = 'newsnow-v3';
 const RSS2JSON   = 'https://api.rss2json.com/v1/api.json?rss_url=';
 
 const FEEDS = {
