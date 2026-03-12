@@ -759,7 +759,7 @@
         return (d.items || []).map(item => ({
           title:      cleanText(item.title || ''),
           summary:    cleanText(item.description || item.content || ''),
-          image:      item.enclosure?.link || item.thumbnail || extractImage(item.description || ''),
+          image:      extractBestImage(item),
           source:     d.feed?.title || 'News',
           url:        item.link || '#',
           pubDate:    item.pubDate || '',
@@ -774,9 +774,29 @@
       return (el.textContent || el.innerText || '').trim().replace(/\s+/g, ' ');
     }
 
+    // Decode HTML entities in a URL (e.g. &amp; → &)
+    function decodeHtmlUrl(str) {
+      if (!str) return '';
+      const el = document.createElement('textarea');
+      el.innerHTML = str;
+      return el.value;
+    }
+
     function extractImage(html) {
       const m = html.match(/<img[^>]+src=["']([^"']+)["']/i);
-      return m ? m[1] : '';
+      return m ? decodeHtmlUrl(m[1]) : '';
+    }
+
+    // Try all possible image fields rss2json may return, decode HTML entities
+    function extractBestImage(item) {
+      const raw =
+        item.thumbnail ||
+        item.enclosure?.link ||
+        item.enclosure?.url ||
+        item['media:content']?.url ||
+        extractImage(item.description || '') ||
+        extractImage(item.content || '');
+      return decodeHtmlUrl(raw || '');
     }
 
     // ─── FETCH CATEGORY (all feeds in parallel, last 7 days) ────────
